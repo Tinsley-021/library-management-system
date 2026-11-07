@@ -3,29 +3,28 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
-  console.log("Starting library catalog seed...");
+  console.log("Starting library database seed...");
 
-  // Upsert genres first so every book can reference a real Genre row.
   const genreData = [
     {
       name: "Fiction",
-      description: "Imaginative stories, novels, and literary works.",
+      description: "Novels, imaginative stories and literary works.",
     },
     {
       name: "Science",
-      description: "Scientific ideas, discoveries, and the natural world.",
+      description: "Scientific discoveries and the natural world.",
     },
     {
       name: "Technology",
-      description: "Computing, software engineering, and technological innovation.",
+      description: "Computing, programming and technological innovation.",
     },
     {
       name: "History",
-      description: "Historical events, people, and civilizations.",
+      description: "Historical events, people and civilizations.",
     },
   ];
 
-  const genres = new Map<string, string>();
+  const genreIds = new Map<string, string>();
 
   for (const genre of genreData) {
     const savedGenre = await prisma.genre.upsert({
@@ -34,16 +33,16 @@ async function main(): Promise<void> {
       create: genre,
     });
 
-    genres.set(savedGenre.name, savedGenre.id);
+    genreIds.set(savedGenre.name, savedGenre.id);
   }
 
-  const fictionId = genres.get("Fiction")!;
-  const scienceId = genres.get("Science")!;
-  const technologyId = genres.get("Technology")!;
-  const historyId = genres.get("History")!;
+  const fictionId = genreIds.get("Fiction")!;
+  const scienceId = genreIds.get("Science")!;
+  const technologyId = genreIds.get("Technology")!;
+  const historyId = genreIds.get("History")!;
 
   const books = [
-    // Fiction: 5 books
+    // FICTION
     {
       title: "To Kill a Mockingbird",
       author: "Harper Lee",
@@ -80,7 +79,7 @@ async function main(): Promise<void> {
       genreId: fictionId,
     },
 
-    // Science: 5 books
+    // SCIENCE
     {
       title: "A Brief History of Time",
       author: "Stephen Hawking",
@@ -94,3 +93,130 @@ async function main(): Promise<void> {
       isbn: "9780198788607",
       publishedYear: 1976,
       genreId: scienceId,
+    },
+    {
+      title: "Cosmos",
+      author: "Carl Sagan",
+      isbn: "9780345539434",
+      publishedYear: 1980,
+      genreId: scienceId,
+    },
+    {
+      title: "On the Origin of Species",
+      author: "Charles Darwin",
+      isbn: "9781509827695",
+      publishedYear: 1859,
+      genreId: scienceId,
+    },
+    {
+      title: "The Elegant Universe",
+      author: "Brian Greene",
+      isbn: "9780393338102",
+      publishedYear: 1999,
+      genreId: scienceId,
+    },
+
+    // TECHNOLOGY
+    {
+      title: "Clean Code",
+      author: "Robert C. Martin",
+      isbn: "9780132350884",
+      publishedYear: 2008,
+      genreId: technologyId,
+    },
+    {
+      title: "The Pragmatic Programmer",
+      author: "Andrew Hunt and David Thomas",
+      isbn: "9780135957059",
+      publishedYear: 1999,
+      genreId: technologyId,
+    },
+    {
+      title: "Introduction to Algorithms",
+      author: "Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, and Clifford Stein",
+      isbn: "9780262046305",
+      publishedYear: 2022,
+      genreId: technologyId,
+    },
+    {
+      title: "Design Patterns",
+      author: "Erich Gamma, Richard Helm, Ralph Johnson, and John Vlissides",
+      isbn: "9780201633610",
+      publishedYear: 1994,
+      genreId: technologyId,
+    },
+    {
+      title: "The Phoenix Project",
+      author: "Gene Kim, Kevin Behr, and George Spafford",
+      isbn: "9781942788294",
+      publishedYear: 2013,
+      genreId: technologyId,
+    },
+
+    // HISTORY
+    {
+      title: "Sapiens",
+      author: "Yuval Noah Harari",
+      isbn: "9780062316097",
+      publishedYear: 2011,
+      genreId: historyId,
+    },
+    {
+      title: "Guns, Germs, and Steel",
+      author: "Jared Diamond",
+      isbn: "9780393354324",
+      publishedYear: 1997,
+      genreId: historyId,
+    },
+    {
+      title: "The Diary of a Young Girl",
+      author: "Anne Frank",
+      isbn: "9780553296983",
+      publishedYear: 1947,
+      genreId: historyId,
+    },
+    {
+      title: "The Silk Roads",
+      author: "Peter Frankopan",
+      isbn: "9781101912379",
+      publishedYear: 2015,
+      genreId: historyId,
+    },
+    {
+      title: "A People's History of the United States",
+      author: "Howard Zinn",
+      isbn: "9780062397348",
+      publishedYear: 1980,
+      genreId: historyId,
+    },
+  ];
+
+  for (const book of books) {
+    await prisma.book.upsert({
+      where: { isbn: book.isbn },
+      update: {
+        title: book.title,
+        author: book.author,
+        publishedYear: book.publishedYear,
+        genreId: book.genreId,
+      },
+      create: book,
+    });
+  }
+
+  const genreCount = await prisma.genre.count();
+  const bookCount = await prisma.book.count();
+
+  console.log(`Genres in database: ${genreCount}`);
+  console.log(`Books in database: ${bookCount}`);
+  console.log("Library database seed completed successfully.");
+}
+
+main()
+  .catch((error: unknown) => {
+    console.error("Database seeding failed:", error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
